@@ -10,16 +10,15 @@ import Data.Text.Read (decimal)
 import Web.Scotty
 import Network.HTTP.Types (badRequest400, notFound404)
 
-import Story
+import Story (_meta, ErrMsg(..), allExampleStories, lookupStoryByID)
 
 routes = do
-  matchAny "/" $ text "Success"
   get "/stories" $ do
     json $ _meta <$> allExampleStories
   get "/story/:id" $ do
     reqID <- param "id" :: ActionM Text
     case decimal reqID of
-      Right (reqIDint, "") -> case lookupByID reqIDint allExampleStories of
+      Right (reqIDint, "") -> case lookupStoryByID reqIDint allExampleStories of
         Just stry -> json stry
         Nothing -> do
           status notFound404

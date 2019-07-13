@@ -4,7 +4,7 @@
 
 module Story
 ( allExampleStories
-, lookupByID
+, lookupStoryByID
 , Story(..)
 , StoryMeta(..)
 , ErrMsg(..)
@@ -60,8 +60,8 @@ story sid stitle stext =
                            , _storyTitle = stitle }
         , _storyText = stext }
 
-lookupByID :: StoryID -> [Story] -> Maybe Story
-lookupByID = find . storyIDEquals
+lookupStoryByID :: StoryID -> [Story] -> Maybe Story
+lookupStoryByID = find . storyIDEquals
 
 storyIDEquals :: StoryID -> Story -> Bool
 storyIDEquals sid stry = (stry ^. (meta . storyID)) == sid
