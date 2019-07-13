@@ -22,22 +22,22 @@ main =
     }
 
 -- MODEL
-type alias LoadedStory = { storyid   : StoryID
-                         , storyName : String
-                         , storyText : String
-                         }
+type alias Story = { storyid   : StoryID
+                   , storyName : String
+                   , storyText : String
+                   }
 
 type alias StoryID = Int
 
-type alias LoadedStoryBlurb = 
+type alias StoryBlurb = 
   { storyid   : StoryID
   , storyName : String }
 
 type Model
   = Loading
   | LoadingStory StoryID
-  | SuccessStory LoadedStory
-  | SuccessStoryBlurbs (List LoadedStoryBlurb)
+  | SuccessStory Story
+  | SuccessStoryBlurbs (List StoryBlurb)
   | CouldntConnect
   | StoryNotFound StoryID
 
@@ -65,8 +65,8 @@ init _ = ( Loading
 
 type Msg = LoadStory StoryID
          | LoadStories
-         | GotStories (List LoadedStoryBlurb)
-         | GotStory LoadedStory
+         | GotStories (List StoryBlurb)
+         | GotStory Story
          | CouldntConnectMsg
 
 getStory : StoryID -> Cmd Msg
@@ -88,27 +88,27 @@ update msg model = case msg of
   GotStories sbs -> (SuccessStoryBlurbs sbs, Cmd.none)
   CouldntConnectMsg -> (CouldntConnect, Cmd.none)
 
-decodeStoryBlurbs : Decoder (List LoadedStoryBlurb)
+decodeStoryBlurbs : Decoder (List StoryBlurb)
 decodeStoryBlurbs = at ["data"] <| list decodeStoryBlurb
 
-decodeStoryBlurb : Decoder LoadedStoryBlurb
-decodeStoryBlurb = map2 LoadedStoryBlurb
+decodeStoryBlurb : Decoder StoryBlurb
+decodeStoryBlurb = map2 StoryBlurb
   (field "storyid" int)
   (field "title" string)
 
-decodeStory : Decoder LoadedStory
+decodeStory : Decoder Story
 decodeStory = at ["data"]
-  <| map3 LoadedStory
+  <| map3 Story
        (field "storyid" int)
        (field "title" string)
        (field "content" string)
 
-handleHttpGetStoryBlurbs : Result Http.Error (List LoadedStoryBlurb) -> Msg
+handleHttpGetStoryBlurbs : Result Http.Error (List StoryBlurb) -> Msg
 handleHttpGetStoryBlurbs r = case r of
   Ok sbs -> GotStories sbs
   Err e -> CouldntConnectMsg
 
-handleHttpResult : Result Http.Error LoadedStory -> Msg
+handleHttpResult : Result Http.Error Story -> Msg
 handleHttpResult r = case r of
   Ok s  -> GotStory s
   Err e -> CouldntConnectMsg
@@ -147,15 +147,15 @@ storyView title text =
     [ headerBar title
     , mdView text ]
 
-storyBlurbLinkView : LoadedStoryBlurb -> Html Msg
+storyBlurbLinkView : StoryBlurb -> Html Msg
 storyBlurbLinkView sb = 
   button [onClick <| LoadStory sb.storyid] [storyBlurbView sb]
 
-storyBlurbView : LoadedStoryBlurb -> Html Msg
+storyBlurbView : StoryBlurb -> Html Msg
 storyBlurbView {storyid, storyName} =
   text <| fromInt storyid ++ ": " ++ storyName
 
-storyBlurbsView : List LoadedStoryBlurb -> List (Html Msg)
+storyBlurbsView : List StoryBlurb -> List (Html Msg)
 storyBlurbsView sbs =
   [ h1 [] [text "Stories"]
   , ul [] (map (li [] << singleton << storyBlurbLinkView) sbs) ]
