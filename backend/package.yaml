@@ -26,6 +26,7 @@ dependencies:
 - scotty
 - sqlite-simple
 - text
+- text-show
 - wai-cors
 
 library:
@@ -39,6 +40,7 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -W
     dependencies:
     - backend
 

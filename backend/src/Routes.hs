@@ -4,13 +4,10 @@ module Routes
 ( routes
 ) where
 
-import Data.Text
-import Data.Text.Read (decimal)
-
 import Web.Scotty
-import Network.HTTP.Types (badRequest400, notFound404)
+import Network.HTTP.Types (notFound404)
 
-import Story (_meta, ErrMsg(..), allExampleStories, lookupStoryByID)
+import Story (_meta, allExampleStories, lookupStoryByID)
 
 ---------------------------
 

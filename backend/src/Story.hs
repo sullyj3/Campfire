@@ -15,7 +15,8 @@ import Data.Text hiding (find)
 import Data.List (find)
 
 import Lens.Micro.TH (makeLenses)
-import Lens.Micro ((&), (%~), (.~), (^.))
+-- import Lens.Micro ((&), (%~), (.~), (^.))
+import Lens.Micro ((^.))
 
 import Data.Aeson (FromJSON, ToJSON, parseJSON, toJSON, object, withObject, (.:), (.=))
 
