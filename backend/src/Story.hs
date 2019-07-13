@@ -18,7 +18,7 @@ import Lens.Micro.TH (makeLenses)
 -- import Lens.Micro ((&), (%~), (.~), (^.))
 import Lens.Micro ((^.))
 
-import Data.Aeson (FromJSON, ToJSON, parseJSON, toJSON, object, withObject, (.:), (.=))
+import Data.Aeson (ToJSON, toJSON, object, (.=))
 
 type StoryID = Int
 
@@ -26,8 +26,10 @@ data StoryMeta =
   StoryMeta { _storyID    :: StoryID
             , _storyTitle :: Text } deriving (Show, Generic)
 
-instance ToJSON StoryMeta
-instance FromJSON StoryMeta
+instance ToJSON StoryMeta where
+  toJSON (StoryMeta sid stitle) =
+    object [ "storyID"    .= sid
+           , "storyTitle" .= stitle ]
 
 makeLenses ''StoryMeta
 
@@ -35,17 +37,16 @@ data Story =
   Story { _meta       :: StoryMeta
         , _storyText  :: Text      } deriving (Show, Generic)
 
-instance ToJSON Story
-instance FromJSON Story
+instance ToJSON Story where
+  toJSON (Story smeta stext) =
+    object [ "meta"      .= toJSON smeta
+           , "storyText" .= stext        ]
 
 makeLenses ''Story
 
 data ErrMsg = ErrMsg { _errMsg :: Text }
   deriving (Show, Generic)
 
-instance FromJSON ErrMsg where
-  parseJSON = withObject "ErrMsg" $ \v -> ErrMsg
-    <$> v .: "error"
 instance ToJSON ErrMsg where
   toJSON (ErrMsg msg) = object ["error" .= msg]
 
