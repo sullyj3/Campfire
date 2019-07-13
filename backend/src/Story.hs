@@ -39,7 +39,7 @@ data Story =
 
 instance ToJSON Story where
   toJSON (Story smeta stext) =
-    object [ "meta"      .= toJSON smeta
+    object [ "storyMeta" .= toJSON smeta
            , "storyText" .= stext        ]
 
 makeLenses ''Story

@@ -13,4 +13,3 @@ main :: IO ()
 main = scotty 5000 $ do
   middleware simpleCors
   routes
-

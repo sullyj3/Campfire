@@ -13,7 +13,6 @@ import List exposing (map, singleton)
 backendURL = "http://localhost:5000"
 
 main =
-  -- Browser.sandbox { init = init, update = update, view = view }
   Browser.document
     { init = init
     , view = view
@@ -21,25 +20,24 @@ main =
     , subscriptions = \m -> Sub.none
     }
 
--- MODEL
-type alias Story = { storyid   : StoryID
-                   , storyName : String
-                   , storyText : String
-                   }
+-- MODEL -------------------------------------------------------------------
 
 type alias StoryID = Int
 
-type alias StoryBlurb = 
-  { storyid   : StoryID
-  , storyName : String }
+type alias Story = { storyMeta : StoryMeta
+                   , storyText : String }
+
+type alias StoryMeta = 
+  { storyID   : StoryID
+  , storyTitle : String }
 
 type Model
-  = Loading
+  = LoadingIndex
   | LoadingStory StoryID
   | SuccessStory Story
-  | SuccessStoryBlurbs (List StoryBlurb)
-  | CouldntConnect
+  | SuccessIndex (List StoryMeta)
   | StoryNotFound StoryID
+  | CouldntConnect -- TODO retry
 
 
 testMd = """
@@ -56,64 +54,62 @@ testMd = """
 
 
 init : () -> (Model, Cmd Msg)
-init _ = ( Loading
-         , getStories
+init _ = ( LoadingIndex
+         , getIndex
          )
 
 
--- UPDATE
+-- UPDATE -------------------------------------------------------------------
 
 type Msg = LoadStory StoryID
-         | LoadStories
-         | GotStories (List StoryBlurb)
+         | LoadIndex
+         | GotIndex (List StoryMeta)
          | GotStory Story
          | CouldntConnectMsg
 
 getStory : StoryID -> Cmd Msg
 getStory id = Http.get { url = backendURL ++ "/story/" ++ fromInt id
-                       , expect = Http.expectJson handleHttpResult decodeStory 
+                       , expect = Http.expectJson handleStoryHttpResult decodeStory
                        }
 
-getStories : Cmd Msg
-getStories = Http.get
+getIndex : Cmd Msg
+getIndex = Http.get
              { url = backendURL ++ "/stories"
-             , expect = Http.expectJson handleHttpGetStoryBlurbs decodeStoryBlurbs
+             , expect = Http.expectJson handleHttpGetIndex decodeIndex
              }
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model = case msg of
-  LoadStory id -> (LoadingStory id, getStory id)
-  LoadStories  -> (Loading, getStories)
-  GotStory s -> (SuccessStory s, Cmd.none)
-  GotStories sbs -> (SuccessStoryBlurbs sbs, Cmd.none)
+  LoadStory id      -> (LoadingStory id, getStory id)
+  LoadIndex         -> (LoadingIndex, getIndex)
+  GotStory s        -> (SuccessStory s, Cmd.none)
+  GotIndex entries  -> (SuccessIndex entries, Cmd.none)
   CouldntConnectMsg -> (CouldntConnect, Cmd.none)
 
-decodeStoryBlurbs : Decoder (List StoryBlurb)
-decodeStoryBlurbs = at ["data"] <| list decodeStoryBlurb
+decodeIndex : Decoder (List StoryMeta)
+decodeIndex = list decodeStoryMeta
 
-decodeStoryBlurb : Decoder StoryBlurb
-decodeStoryBlurb = map2 StoryBlurb
-  (field "storyid" int)
-  (field "title" string)
+decodeStoryMeta : Decoder StoryMeta
+decodeStoryMeta = map2 StoryMeta
+  (field "storyID" int)
+  (field "storyTitle" string)
 
 decodeStory : Decoder Story
-decodeStory = at ["data"]
-  <| map3 Story
-       (field "storyid" int)
-       (field "title" string)
-       (field "content" string)
+decodeStory = map2 Story
+  (field "storyMeta" decodeStoryMeta)
+  (field "storyText" string)
 
-handleHttpGetStoryBlurbs : Result Http.Error (List StoryBlurb) -> Msg
-handleHttpGetStoryBlurbs r = case r of
-  Ok sbs -> GotStories sbs
+handleHttpGetIndex : Result Http.Error (List StoryMeta) -> Msg
+handleHttpGetIndex r = case r of
+  Ok entries -> GotIndex entries
   Err e -> CouldntConnectMsg
 
-handleHttpResult : Result Http.Error Story -> Msg
-handleHttpResult r = case r of
+handleStoryHttpResult : Result Http.Error Story -> Msg
+handleStoryHttpResult r = case r of
   Ok s  -> GotStory s
   Err e -> CouldntConnectMsg
 
--- VIEW
+-- VIEW -------------------------------------------------------------------
 
 view : Model -> Document Msg
 view model =
@@ -126,7 +122,7 @@ navBar : Html Msg
 navBar =
   nav [class "navbar"]
     [ a [href "upload"] [text "+"]
-    , button [onClick LoadStories] [text "Stories"]
+    , button [onClick LoadIndex] [text "Stories"]
     ]
 
 headerBar : String -> Html Msg
@@ -142,32 +138,32 @@ mdView md = div [class "mdView", class "row"]
                     <| Markdown.toHtml Nothing md
                 ]
 
-storyView : String -> String -> List (Html Msg)
-storyView title text =
-    [ headerBar title
-    , mdView text ]
+storyView : Story -> List (Html Msg)
+storyView { storyMeta, storyText } = let {storyID, storyTitle} =  storyMeta in
+    [ headerBar storyTitle
+    , mdView storyText ]
 
-storyBlurbLinkView : StoryBlurb -> Html Msg
-storyBlurbLinkView sb = 
-  button [onClick <| LoadStory sb.storyid] [storyBlurbView sb]
+storyMetaLinkView : StoryMeta -> Html Msg
+storyMetaLinkView sm =
+  button [onClick <| LoadStory sm.storyID] [storyMetaView sm]
 
-storyBlurbView : StoryBlurb -> Html Msg
-storyBlurbView {storyid, storyName} =
-  text <| fromInt storyid ++ ": " ++ storyName
+storyMetaView : StoryMeta -> Html Msg
+storyMetaView {storyID, storyTitle} =
+  text <| fromInt storyID ++ ": " ++ storyTitle
 
-storyBlurbsView : List StoryBlurb -> List (Html Msg)
-storyBlurbsView sbs =
+indexView : List StoryMeta -> List (Html Msg)
+indexView entries =
   [ h1 [] [text "Stories"]
-  , ul [] (map (li [] << singleton << storyBlurbLinkView) sbs) ]
+  , ul [] (map (li [] << singleton << storyMetaLinkView) entries) ]
 
 bodyView : Model -> Html Msg
 bodyView model =
     div [class "container"]
       <| case model of
-           Loading        -> [ text "loading" ]
-           LoadingStory id -> [ text <| "loading story id " ++ fromInt id ]
-           SuccessStoryBlurbs sbs -> storyBlurbsView sbs
-           SuccessStory {storyid, storyName, storyText} -> storyView storyName storyText
-           CouldntConnect   -> [ text "couldn't reach the backend" ]
-           StoryNotFound _ -> [ text "couldn't find the story!" ]
+           LoadingIndex         -> [ text "loading index" ]
+           LoadingStory id      -> [ text <| "loading story id " ++ fromInt id ]
+           SuccessIndex entries -> indexView entries
+           SuccessStory stry    -> storyView stry
+           StoryNotFound _      -> [ text "couldn't find the story!" ]
+           CouldntConnect       -> [ text "couldn't reach the backend" ]
 
