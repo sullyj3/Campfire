@@ -2,7 +2,6 @@ node_modules/
 __pycache__/
 venv
 elm-stuff/
-index.html
 my_db.db
 notes.txt
-main.js
+build/

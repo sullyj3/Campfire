@@ -10,8 +10,6 @@ import Json.Encode as E
 import String exposing (fromInt)
 import List exposing (map, singleton)
 
-backendURL = "http://localhost:5000"
-
 main =
   Browser.document
     { init = init
@@ -31,13 +29,17 @@ type alias StoryMeta =
   { storyID   : StoryID
   , storyTitle : String }
 
-type Model
+type ModelState
   = LoadingIndex
   | LoadingStory StoryID
   | SuccessStory Story
   | SuccessIndex (List StoryMeta)
   | StoryNotFound StoryID
   | CouldntConnect -- TODO retry
+
+type alias Model = { apiURL : String
+                   , state      : ModelState
+                   }
 
 
 testMd = """
@@ -52,12 +54,15 @@ testMd = """
 2. List item 2
 """
 
+type alias Flags = { api_url : String }
 
-init : () -> (Model, Cmd Msg)
-init _ = ( LoadingIndex
-         , getIndex
-         )
 
+init : Flags -> (Model, Cmd Msg)
+init flags = ( { apiURL = flags.api_url
+               , state  = LoadingIndex
+               }
+             , getIndex flags.api_url
+             )
 
 -- UPDATE -------------------------------------------------------------------
 
@@ -67,24 +72,25 @@ type Msg = LoadStory StoryID
          | GotStory Story
          | CouldntConnectMsg
 
-getStory : StoryID -> Cmd Msg
-getStory id = Http.get { url = backendURL ++ "/story/" ++ fromInt id
-                       , expect = Http.expectJson handleStoryHttpResult decodeStory
-                       }
+getStory : String -> StoryID -> Cmd Msg
+getStory apiURL id = Http.get 
+  { url = apiURL ++ "/story/" ++ fromInt id
+  , expect = Http.expectJson handleStoryHttpResult decodeStory
+  }
 
-getIndex : Cmd Msg
-getIndex = Http.get
-             { url = backendURL ++ "/stories"
-             , expect = Http.expectJson handleHttpGetIndex decodeIndex
-             }
+getIndex : String -> Cmd Msg
+getIndex apiURL = Http.get
+  { url = apiURL ++ "/stories"
+  , expect = Http.expectJson handleHttpGetIndex decodeIndex
+  }
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model = case msg of
-  LoadStory id      -> (LoadingStory id, getStory id)
-  LoadIndex         -> (LoadingIndex, getIndex)
-  GotStory s        -> (SuccessStory s, Cmd.none)
-  GotIndex entries  -> (SuccessIndex entries, Cmd.none)
-  CouldntConnectMsg -> (CouldntConnect, Cmd.none)
+  LoadStory id      -> ({ model | state = LoadingStory id      }, getStory model.apiURL id )
+  LoadIndex         -> ({ model | state = LoadingIndex         }, getIndex model.apiURL    )
+  GotStory s        -> ({ model | state = SuccessStory s       }, Cmd.none                 )
+  GotIndex entries  -> ({ model | state = SuccessIndex entries }, Cmd.none                 )
+  CouldntConnectMsg -> ({ model | state = CouldntConnect       }, Cmd.none                 )
 
 decodeIndex : Decoder (List StoryMeta)
 decodeIndex = list decodeStoryMeta
@@ -159,7 +165,7 @@ indexView entries =
 bodyView : Model -> Html Msg
 bodyView model =
     div [class "container"]
-      <| case model of
+      <| case model.state of
            LoadingIndex         -> [ text "loading index" ]
            LoadingStory id      -> [ text <| "loading story id " ++ fromInt id ]
            SuccessIndex entries -> indexView entries
