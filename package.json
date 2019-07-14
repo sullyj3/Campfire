@@ -1,0 +1,12 @@
+{
+  "name": "campfire",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/sullyj3/Campfire/issues"
+  },
+  "homepage": "https://github.com/sullyj3/Campfire#readme"
+}
