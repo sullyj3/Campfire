@@ -40,7 +40,6 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    - -W
     dependencies:
     - backend
 
