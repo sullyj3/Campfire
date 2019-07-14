@@ -24,7 +24,7 @@ dependencies:
 - microlens
 - microlens-th
 - scotty
-- sqlite-simple
+- postgresql-simple
 - text
 - text-show
 - wai-cors
