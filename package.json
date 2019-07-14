@@ -8,5 +8,8 @@
   "bugs": {
     "url": "https://github.com/sullyj3/Campfire/issues"
   },
-  "homepage": "https://github.com/sullyj3/Campfire#readme"
+  "homepage": "https://github.com/sullyj3/Campfire#readme",
+  "dependencies": {
+    "create-elm-app": ">1.0.0"
+  }
 }
