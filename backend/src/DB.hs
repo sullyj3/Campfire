@@ -26,19 +26,13 @@ instance FromRow Story where
 instance FromRow StoryMeta where
   fromRow = StoryMeta <$> field <*> field
 
-select4 :: ByteString -> IO Int
-select4 connString = do
-  conn <- connectPostgreSQL connString
-  [Only i] <- query_ conn "select 2 + 2"
-  return i
-
 selectStories :: Connection -> IO [Story]
 selectStories conn = do
   query_ conn "SELECT * FROM Story"
 
 selectStoryMetas :: Connection -> IO [StoryMeta]
 selectStoryMetas conn = do
-  query_ conn "SELECT (story_id, title) FROM Story"
+  query_ conn "SELECT story_id, title FROM Story"
 
 (<<$>>) = fmap . fmap
 
