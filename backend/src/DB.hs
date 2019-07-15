@@ -60,7 +60,7 @@ testDB = do
 
 testDB2 :: IO ()
 testDB2 = do
-  putStrLn "testing db: should print story metadata"
+  putStrLn "testing db: should print all stories"
   getDB
     >>= selectStories
     >>= print
