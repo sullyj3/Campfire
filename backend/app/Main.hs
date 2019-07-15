@@ -1,18 +1,17 @@
-{-# LANGUAGE OverloadedStrings #-}
 
 module Main
 ( main
 ) where
 
 import System.Environment
-import Data.Maybe (fromMaybe, fromJust)
+import Data.Maybe (fromMaybe)
 import Text.Read (readMaybe)
 
 import Network.Wai.Middleware.Cors
 import Web.Scotty
 
 import Routes (routes)
-import DB (dbtest)
+-- import DB ()
 
 ------------------------
 
@@ -28,4 +27,4 @@ server = do
     middleware simpleCors
     routes
 
-main = dbtest
+main = server
