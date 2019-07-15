@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module DB
-(
+( dbtest
 ) where
 
 import Data.Maybe (fromMaybe, fromJust)
@@ -30,4 +30,6 @@ dbConnString = do
       exitFailure
 
 dbtest :: IO ()
-dbtest = dbConnString >>= select4 >>= print
+dbtest = do
+  putStrLn "testing db: should print 4"
+  dbConnString >>= select4 >>= print
