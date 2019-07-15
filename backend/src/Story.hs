@@ -8,6 +8,7 @@ module Story
 , Story(..)
 , StoryMeta(..)
 , ErrMsg(..)
+, story
 )
 where
 import GHC.Generics
@@ -59,7 +60,7 @@ allExampleStories = [exampleStory1, exampleStory2]
 
 story sid stitle stext = 
   Story { _meta = StoryMeta { _storyID    = sid 
-                           , _storyTitle = stitle }
+                            , _storyTitle = stitle }
         , _storyText = stext }
 
 lookupStoryByID :: StoryID -> [Story] -> Maybe Story

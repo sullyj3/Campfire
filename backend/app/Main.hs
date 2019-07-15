@@ -11,7 +11,7 @@ import Network.Wai.Middleware.Cors
 import Web.Scotty
 
 import Routes (routes)
-import DB (dbtest)
+import DB (testDB, testDB2)
 
 ------------------------
 
@@ -27,4 +27,4 @@ server = do
     middleware simpleCors
     routes
 
-main = dbtest
+main = testDB2
