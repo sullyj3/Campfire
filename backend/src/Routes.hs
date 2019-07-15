@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Routes
 ( routes
@@ -10,7 +11,7 @@ import Web.Scotty
 import Network.HTTP.Types (notFound404)
 
 import Story (_meta, allExampleStories, lookupStoryByID)
-import DB (getDB, selectStoryMetas)
+import DB (withDB, selectStoryMetas, selectStory)
 
 ---------------------------
 
@@ -21,13 +22,10 @@ routes = do
 ---------------------------
 
 stories :: ActionM ()
-stories = do
-  storyMetas <- liftIO $ getDB >>= selectStoryMetas
-  json $ storyMetas
+stories = liftIO (withDB selectStoryMetas) >>= json
 
 story :: ActionM ()
-story = do
-  reqID <- param "id" :: ActionM Int
-  case lookupStoryByID reqID allExampleStories of
-    Just stry -> json stry
-    Nothing   -> status notFound404
+story = param "id" >>= (liftIO . withDB . selectStory)
+                   >>= \case
+                     Just stry -> json stry
+                     Nothing   -> status notFound404

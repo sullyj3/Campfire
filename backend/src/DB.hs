@@ -3,18 +3,19 @@
 module DB
 ( testDB
 , testDB2
-, getDB
 , selectStoryMetas
+, selectStory
+, withDB
 ) where
 
-import Data.Maybe (fromMaybe, fromJust)
+import Data.Maybe (fromMaybe, fromJust, listToMaybe)
 import Data.String (fromString)
 import Data.ByteString (ByteString)
 import Control.Applicative (liftA3)
 import System.Environment
 import System.Exit (exitFailure)
 
-import Database.PostgreSQL.Simple (connectPostgreSQL, query_, Connection)
+import Database.PostgreSQL.Simple (connectPostgreSQL, query, query_, Connection, close)
 import Database.PostgreSQL.Simple.FromRow (FromRow, fromRow, field)
 import Database.PostgreSQL.Simple.Types (Only(..))
 
@@ -26,6 +27,11 @@ instance FromRow Story where
 instance FromRow StoryMeta where
   fromRow = StoryMeta <$> field <*> field
 
+selectStory :: Int -> Connection -> IO (Maybe Story)
+selectStory storyID conn = do
+  ss <- query conn "SELECT * FROM Story WHERE story_id=?" (Only storyID)
+  return $ listToMaybe ss
+
 selectStories :: Connection -> IO [Story]
 selectStories conn = do
   query_ conn "SELECT * FROM Story"
@@ -36,29 +42,31 @@ selectStoryMetas conn = do
 
 (<<$>>) = fmap . fmap
 
-dbConnString :: IO ByteString
-dbConnString = do
-  mdbURL <- fromString <<$>> lookupEnv "DATABASE_URL"
-  case mdbURL of
-    Just dbURL -> return dbURL
-    Nothing -> do
-      putStrLn "You need to set the DATABASE_URL env variable!"
-      exitFailure
 
 testDB :: IO ()
 testDB = do
   putStrLn "testing db: should print story metadata"
-  getDB
-    >>= selectStoryMetas
-    >>= print
+  withDB selectStoryMetas >>= print
 
 testDB2 :: IO ()
 testDB2 = do
   putStrLn "testing db: should print all stories"
-  getDB
-    >>= selectStories
-    >>= print
+  withDB selectStories >>= print
 
-
-getDB :: IO Connection
-getDB = dbConnString >>= connectPostgreSQL
+-- TODO: this accesses the DATABASE_URL env variable every time. Seems like we
+-- should read it once at the start of the program and then pass it around
+withDB :: (Connection -> IO a) -> IO a
+withDB dbAction = do
+    conn <- dbConnString >>= connectPostgreSQL
+    result <- dbAction conn
+    close conn
+    return result
+  where
+    dbConnString :: IO ByteString
+    dbConnString = do
+      mdbURL <- fromString <<$>> lookupEnv "DATABASE_URL"
+      case mdbURL of
+        Just dbURL -> return dbURL
+        Nothing -> do
+          putStrLn "You need to set the DATABASE_URL env variable!"
+          exitFailure

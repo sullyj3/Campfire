@@ -27,4 +27,4 @@ server = do
     middleware simpleCors
     routes
 
-main = testDB
+main = server
