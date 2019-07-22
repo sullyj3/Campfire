@@ -6,6 +6,7 @@ module Routes
 ) where
 
 import Control.Monad.IO.Class
+import Data.ByteString (ByteString)
 
 import Web.Scotty
 import Network.HTTP.Types (notFound404)
@@ -15,15 +16,16 @@ import DB (withDB, selectStoryMetas, selectStory)
 
 ---------------------------
 
-routes = do
-  get "/stories"   stories
-  get "/story/:id" story
+routes :: ByteString -> ScottyM ()
+routes dbAddr = do
+  get "/stories"   stories dbAddr
+  get "/story/:id" story   dbAddr
 
 ---------------------------
 
-stories :: ActionM ()
-stories = liftIO (withDB selectStoryMetas) >>= json
+stories :: ByteString -> ActionM ()
+stories dbAddr = liftIO (withDB dbAddr selectStoryMetas) >>= json
 
-story :: ActionM ()
-story = param "id" >>= (liftIO . withDB . selectStory)
-                   >>= maybe (status notFound404) json
+story :: ByteString -> ActionM ()
+story dbAddr = param "id" >>= (liftIO . withDB dbAddr . selectStory)
+                          >>= maybe (status notFound404) json

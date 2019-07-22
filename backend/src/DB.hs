@@ -21,6 +21,8 @@ import Database.PostgreSQL.Simple.Types (Only(..))
 
 import Story (Story(..), StoryMeta(..), story)
 
+type DBAction a = Connection -> IO a
+
 instance FromRow Story where
   fromRow = story <$> field <*> field <*> field
 
@@ -42,31 +44,9 @@ selectStoryMetas conn = do
 
 (<<$>>) = fmap . fmap
 
-
-testDB :: IO ()
-testDB = do
-  putStrLn "testing db: should print story metadata"
-  withDB selectStoryMetas >>= print
-
-testDB2 :: IO ()
-testDB2 = do
-  putStrLn "testing db: should print all stories"
-  withDB selectStories >>= print
-
--- TODO: this accesses the DATABASE_URL env variable every time. Seems like we
--- should read it once at the start of the program and then pass it around
-withDB :: (Connection -> IO a) -> IO a
-withDB dbAction = do
-    conn <- dbConnString >>= connectPostgreSQL
+withDB :: ByteString -> (Connection -> IO a) -> IO a
+withDB dbConnString dbAction = do
+    conn <- connectPostgreSQL dbConnString 
     result <- dbAction conn
     close conn
     return result
-  where
-    dbConnString :: IO ByteString
-    dbConnString = do
-      mdbURL <- fromString <<$>> lookupEnv "DATABASE_URL"
-      case mdbURL of
-        Just dbURL -> return dbURL
-        Nothing -> do
-          putStrLn "You need to set the DATABASE_URL env variable!"
-          exitFailure
