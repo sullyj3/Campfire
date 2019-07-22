@@ -26,6 +26,4 @@ stories = liftIO (withDB selectStoryMetas) >>= json
 
 story :: ActionM ()
 story = param "id" >>= (liftIO . withDB . selectStory)
-                   >>= \case
-                     Just stry -> json stry
-                     Nothing   -> status notFound404
+                   >>= maybe (status notFound404) json
