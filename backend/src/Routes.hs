@@ -25,5 +25,7 @@ stories :: ActionM ()
 stories = liftIO (withDB selectStoryMetas) >>= json
 
 story :: ActionM ()
-story = param "id" >>= (liftIO . withDB . selectStory)
-                   >>= maybe (status notFound404) json
+story = param "id" >>= getStoryID
+
+getStoryID :: Int -> ActionM ()
+getStoryID = (liftIO . withDB . selectStory) >=> maybe (status notFound404) json
