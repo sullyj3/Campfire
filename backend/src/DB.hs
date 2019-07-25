@@ -57,7 +57,7 @@ testDB2 = do
 -- should read it once at the start of the program and then pass it around
 withDB :: (Connection -> IO a) -> IO a
 withDB dbAction = do
-    conn <- dbConnString >>= connectPostgreSQL
+    conn <- connectPostgreSQL =<< dbConnString 
     result <- dbAction conn
     close conn
     return result
