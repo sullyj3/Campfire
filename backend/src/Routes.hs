@@ -5,7 +5,7 @@ module Routes
 ( routes
 ) where
 
-import Control.Monad (<=<)
+import Control.Monad ((<=<))
 import Control.Monad.IO.Class
 
 import Web.Scotty
