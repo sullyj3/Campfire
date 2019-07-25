@@ -5,6 +5,7 @@ module Routes
 ( routes
 ) where
 
+import Control.Monad (<=<)
 import Control.Monad.IO.Class
 
 import Web.Scotty
@@ -28,4 +29,4 @@ story :: ActionM ()
 story = param "id" >>= getStoryID
 
 getStoryID :: Int -> ActionM ()
-getStoryID = (liftIO . withDB . selectStory) >=> maybe (status notFound404) json
+getStoryID = maybe (status notFound404) json <=< (liftIO . withDB . selectStory)
