@@ -29,6 +29,7 @@ dependencies:
 - text
 - text-show
 - wai-cors
+- wai-extra
 
 library:
   source-dirs: src
