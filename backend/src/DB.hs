@@ -8,7 +8,7 @@ module DB
 , withDB
 ) where
 
-import Data.Maybe (fromMaybe, fromJust, listToMaybe)
+import Data.Maybe (listToMaybe)
 import Data.String (fromString)
 import Data.ByteString (ByteString)
 import Control.Applicative (liftA3)
@@ -33,12 +33,10 @@ selectStory storyID conn = do
   return $ listToMaybe ss
 
 selectStories :: Connection -> IO [Story]
-selectStories conn = do
-  query_ conn "SELECT * FROM Story"
+selectStories conn = query_ conn "SELECT * FROM Story"
 
 selectStoryMetas :: Connection -> IO [StoryMeta]
-selectStoryMetas conn = do
-  query_ conn "SELECT story_id, title FROM Story"
+selectStoryMetas conn = query_ conn "SELECT story_id, title FROM Story"
 
 (<<$>>) = fmap . fmap
 
