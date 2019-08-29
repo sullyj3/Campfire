@@ -238,8 +238,7 @@ bodyView model =
 navBar : Html Msg
 navBar =
   nav [class "navbar"]
-    [ a [href "upload"] [text "+"]
-    , button [onClick GoToUploadPage] [text "Upload Story"]
+    [ button [onClick GoToUploadPage] [text "Upload Story"]
     , button [onClick LoadIndex    ] [text "Stories"]
     ]
 
