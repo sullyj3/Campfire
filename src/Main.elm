@@ -22,30 +22,91 @@ main =
 
 type alias StoryID = Int
 
-type alias Story = { storyMeta : StoryMeta
-                   , storyText : String }
 
-type alias StoryMeta =
-  { storyID   : StoryID
-  , storyTitle : String }
+type alias StoryMeta a =
+  { a | storyID    : StoryID
+      , storyTitle : String }
 
-type alias StoryUpload =
-  { storyTitle : String
-  , storyText : String
-  }
+type alias Story = StoryMeta { storyText : String }
 
-type ModelState
-  = UploadPage StoryUpload
-  | LoadingIndex
-  | LoadingStory StoryID
-  | SuccessStory Story
-  | SuccessIndex (List StoryMeta)
-  | StoryNotFound StoryID
-  | CouldntConnect -- TODO retry
+type alias StoryUpload = { storyTitle : String, storyText  : String }
+
+type UploadPageState = EnteringStory StoryUpload
+                     | UploadingStory StoryUpload
+                     | UploadError Http.Error
+                     | UploadSuccess
+
+type IndexPageState
+  = LoadingIndex
+  | LoadedIndex (List (StoryMeta {}))
+  | IndexError
+
+type CurrentPage
+  = UploadPage UploadPageState
+  | IndexPage IndexPageState
+  | StoryPage StoryPageState
+
+type StoryPageState
+  = LoadingStory StoryID
+  | LoadedStory Story
+  | StoryNotFound
 
 type alias Model = { apiURL : String
-                   , state  : ModelState
+                   , page : CurrentPage
                    }
+
+-- update2 : (Model, Msg) -> (Model, Cmd Msg)
+-- update2 
+
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model = case msg of
+
+  -- USER INPUT
+  (LoadStory id) -> loadStory id model
+  LoadIndex      -> loadIndex model
+  GoToUploadPage -> goToUploadPage model
+  UploadStory su   -> uploadStory su model
+
+  (UpdateStoryTitle title) ->
+    case model.page of
+      UploadPage (EnteringStory storyUpload) ->
+        ({model | page = UploadPage <| EnteringStory {storyUpload | storyTitle = title }}, Cmd.none)
+      _ -> (model, Cmd.none) -- TODO - is there a way to get rid of this?
+  (UpdateStoryText text) ->
+    case model.page of
+      UploadPage (EnteringStory storyUpload) ->
+        ({model | page = UploadPage <| EnteringStory {storyUpload | storyText = text }}, Cmd.none)
+      _ -> (model, Cmd.none) -- TODO - is there a way to get rid of this?
+
+  -- SERVER RESPONSES
+  (GotIndex metas) ->
+    ({ model | page = IndexPage <| LoadedIndex metas }, Cmd.none )
+  IndexErrorMsg ->
+    ({model | page = IndexPage IndexError }, Cmd.none)
+  (GotStory s) ->
+    ({ model | page = StoryPage <| LoadedStory s }, Cmd.none )
+  StoryErrorMsg ->
+    ({model | page = StoryPage StoryNotFound }, Cmd.none)
+  (UploadStoryResponse rslt) ->
+    case rslt of
+      Ok () -> ({ model | page = UploadPage UploadSuccess }, Cmd.none)
+      Err e -> ({ model | page = UploadPage (UploadError e) }, Cmd.none)
+  
+
+loadStory : Int -> Model -> (Model, Cmd Msg)
+loadStory id model = 
+  ({ model | page = StoryPage <| LoadingStory id }, getStory model.apiURL id )
+
+loadIndex : Model -> (Model, Cmd Msg)
+loadIndex model = ({ model | page = IndexPage LoadingIndex }, getIndex model.apiURL )
+
+goToUploadPage : Model -> (Model, Cmd Msg)
+goToUploadPage model = ({ model | page = UploadPage emptyStoryUpload }, Cmd.none )
+
+uploadStory : StoryUpload -> Model -> (Model, Cmd Msg)
+uploadStory su model = 
+  ( {model | page = UploadPage <| UploadingStory su}
+  , postStory model.apiURL su )
 
 
 testMd = """
@@ -65,23 +126,31 @@ type alias Flags = { api_url : String }
 
 init : Flags -> (Model, Cmd Msg)
 init flags = ( { apiURL = flags.api_url
-               , state  = LoadingIndex
+               , page   = IndexPage LoadingIndex
                }
              , getIndex flags.api_url
              )
 
 -- UPDATE -------------------------------------------------------------------
 
-type Msg = LoadStory StoryID
+type Msg =
+         -- User input
+           LoadStory StoryID
          | LoadIndex
-         | GotIndex (List StoryMeta)
-         | GotStory Story
          | GoToUploadPage
-         | UploadStory
-         | UploadedStory (Result Http.Error ())
-         | CouldntConnectMsg
+         | UploadStory StoryUpload
+
          | UpdateStoryTitle String
          | UpdateStoryText  String
+
+         -- Server responses
+         | GotIndex (List (StoryMeta {}))
+         | IndexErrorMsg
+
+         | GotStory Story
+         | StoryErrorMsg
+
+         | UploadStoryResponse (Result Http.Error ())
 
 
 getStory : String -> StoryID -> Cmd Msg
@@ -96,42 +165,14 @@ getIndex apiURL = Http.get
   , expect = Http.expectJson handleHttpGetIndex decodeIndex
   }
 
-uploadStory : String -> StoryUpload -> Cmd Msg
-uploadStory apiURL stry = Http.post
+postStory : String -> StoryUpload -> Cmd Msg
+postStory apiURL stry = Http.post
   { url = apiURL
   , body = Http.jsonBody <| encodeStoryUpload stry
-  , expect = Http.expectWhatever UploadedStory }
+  , expect = Http.expectWhatever UploadStoryResponse }
 
-emptyStoryUpload : StoryUpload
-emptyStoryUpload = StoryUpload "" ""
-
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model = case msg of
-  LoadStory id       -> ({ model | state = LoadingStory id      }, getStory model.apiURL id )
-  LoadIndex          -> ({ model | state = LoadingIndex         }, getIndex model.apiURL    )
-  GotStory s         -> ({ model | state = SuccessStory s       }, Cmd.none                 )
-  GotIndex entries   -> ({ model | state = SuccessIndex entries }, Cmd.none                 )
-  GoToUploadPage     -> ({ model | state = UploadPage emptyStoryUpload}, Cmd.none                 )
-  CouldntConnectMsg  -> (  model                                 , Cmd.none                 )
-  UpdateStoryTitle t -> case model.state of
-                          (UploadPage currFormState) ->
-                            ({ model | state = UploadPage (updateStoryTitle t currFormState) }, Cmd.none )
-                          _ -> (model, Cmd.none)
-  UpdateStoryText t  -> case model.state of
-                          (UploadPage currFormState) ->
-                            ({ model | state = UploadPage (updateStoryText  t currFormState) }, Cmd.none )
-                          _ -> (model, Cmd.none)
-  UploadStory   -> let 
-                        storyUpload = case model.state of
-                          UploadPage su -> su
-                          _             -> emptyStoryUpload -- unreachable, hopefully
-                        cmd = uploadStory model.apiURL storyUpload
-
-                   in
-                       (model, cmd)
-  UploadedStory _ -> (model, Cmd.none)
-
-update2 : (Model, Msg) -> (Model, Cmd Msg)
+emptyStoryUpload : UploadPageState
+emptyStoryUpload = EnteringStory { storyTitle="", storyText="" }
 
 updateStoryTitle : String -> StoryUpload -> StoryUpload
 updateStoryTitle t su = { su | storyTitle = t }
@@ -139,17 +180,18 @@ updateStoryTitle t su = { su | storyTitle = t }
 updateStoryText : String -> StoryUpload -> StoryUpload
 updateStoryText t su = { su | storyText = t }
 
-decodeIndex : Decoder (List StoryMeta)
+decodeIndex : Decoder (List (StoryMeta {}))
 decodeIndex = list decodeStoryMeta
 
-decodeStoryMeta : Decoder StoryMeta
-decodeStoryMeta = map2 StoryMeta
+decodeStoryMeta : Decoder (StoryMeta {})
+decodeStoryMeta = map2 (\ id title -> {storyID=id, storyTitle=title})
   (field "storyID" int)
   (field "storyTitle" string)
 
 decodeStory : Decoder Story
-decodeStory = map2 Story
-  (field "storyMeta" decodeStoryMeta)
+decodeStory = map3 (\id title text -> {storyID=id, storyTitle=title, storyText=text})
+  (field "storyID" int)
+  (field "storyTitle" string)
   (field "storyText" string)
 
 encodeStoryUpload : StoryUpload -> Enc.Value
@@ -158,15 +200,15 @@ encodeStoryUpload stry = Enc.object
     , ("storyText" , Enc.string stry.storyText )
     ]
 
-handleHttpGetIndex : Result Http.Error (List StoryMeta) -> Msg
+handleHttpGetIndex : Result Http.Error (List (StoryMeta {})) -> Msg
 handleHttpGetIndex r = case r of
   Ok entries -> GotIndex entries
-  Err e -> CouldntConnectMsg
+  Err e -> IndexErrorMsg
 
 handleStoryHttpResult : Result Http.Error Story -> Msg
 handleStoryHttpResult r = case r of
   Ok s  -> GotStory s
-  Err e -> CouldntConnectMsg
+  Err e -> StoryErrorMsg
 
 -- VIEW -------------------------------------------------------------------
 
@@ -180,14 +222,18 @@ view model =
 bodyView : Model -> Html Msg
 bodyView model =
     div [class "container"]
-      <| case model.state of
-           UploadPage _          -> uploadView
-           LoadingIndex         -> [ text "loading index" ]
-           LoadingStory id      -> [ text <| "loading story id " ++ fromInt id ]
-           SuccessIndex entries -> indexView entries
-           SuccessStory stry    -> storyView stry
-           StoryNotFound _      -> [ text "couldn't find the story!" ]
-           CouldntConnect       -> [ text "couldn't reach the backend" ]
+      <| case model.page of
+        UploadPage ups -> uploadView ups
+        IndexPage  ips -> indexView  ips
+        StoryPage  sps -> storyView  sps
+
+        --   UploadPage _         -> uploadView
+        --   LoadingIndex         -> [ text "loading index" ]
+        --   LoadingStory id      -> [ text <| "loading story id " ++ fromInt id ]
+        --   LoadedIndex entries  -> indexView entries
+        --   LoadedStory stry    -> storyView stry
+        --   StoryNotFound _      -> [ text "couldn't find the story!" ]
+           -- CouldntConnect       -> [ text "couldn't reach the backend" ]
 
 navBar : Html Msg
 navBar =
@@ -210,26 +256,43 @@ mdView md = div [ class "mdView", class "row"]
                     <| Markdown.toHtml Nothing md
                 ]
 
-storyView : Story -> List (Html Msg)
-storyView { storyMeta, storyText } = let {storyID, storyTitle} =  storyMeta in
+storyView : StoryPageState -> List (Html Msg)
+storyView sps = case sps of
+  LoadingStory id -> [text "loading story"]
+  LoadedStory s -> storyLoadedView s
+  StoryNotFound -> [text "Couldn't find that story!"]
+
+storyLoadedView : Story -> List (Html Msg)
+storyLoadedView { storyID, storyTitle, storyText } =
     [ headerBar storyTitle
     , mdView storyText ]
 
-storyMetaLinkView : StoryMeta -> Html Msg
+storyMetaLinkView : StoryMeta a -> Html Msg
 storyMetaLinkView sm =
   button [onClick <| LoadStory sm.storyID] [storyMetaView sm]
 
-storyMetaView : StoryMeta -> Html Msg
+storyMetaView : StoryMeta a -> Html Msg
 storyMetaView {storyID, storyTitle} =
   text <| fromInt storyID ++ ": " ++ storyTitle
 
-indexView : List StoryMeta -> List (Html Msg)
-indexView entries =
+
+indexView : IndexPageState -> List (Html Msg)
+indexView ips = case ips of
+  LoadingIndex -> [text "loading index"]
+  LoadedIndex storyList -> indexLoadedView storyList
+  IndexError -> [text "Error fetching the index"]
+
+indexLoadedView : List (StoryMeta a) -> List (Html Msg)
+indexLoadedView entries =
   [ h1 [] [text "Stories"]
   , ul [] (map (li [] << singleton << storyMetaLinkView) entries) ]
 
-uploadView : List (Html Msg)
-uploadView = [ input [ placeholder "Story title", onInput UpdateStoryTitle ] [ text "foo" ] 
-             , input [ placeholder "Text", onInput UpdateStoryText ] [ text "bar" ] 
-             , button [onClick UploadStory] [text "Upload"]
-             ]
+uploadView : UploadPageState -> List (Html Msg)
+uploadView ups = case ups of
+  (EnteringStory su) -> [ input [ placeholder "Story title", onInput UpdateStoryTitle ] [ text su.storyTitle ] 
+                        , input [ placeholder "Text",        onInput UpdateStoryText ]  [ text su.storyText ] 
+                        , button [onClick <| UploadStory su] [text "Upload"]
+                        ]
+  (UploadingStory _) -> [ text "Uploading..." ]
+  (UploadError _)    -> [ text "Error uploading story" ]
+  (UploadSuccess)    -> [ text "Successfully uploaded!" ]
