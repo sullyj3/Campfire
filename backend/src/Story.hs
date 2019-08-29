@@ -3,12 +3,9 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Story
-( allExampleStories
-, lookupStoryByID
-, Story(..)
+( Story(..)
 , StoryMeta(..)
 , ErrMsg(..)
-, story
 )
 where
 import GHC.Generics
@@ -23,9 +20,24 @@ import Data.Aeson (ToJSON, toJSON, object, (.=))
 
 type StoryID = Int
 
+-- the main story type
+data Story =
+  Story { _storyID    :: StoryID
+        , _storyTitle :: Text
+        , _storyText  :: Text      } deriving (Show, Generic)
+
+instance ToJSON Story where
+  toJSON (Story sid stitle stext) =
+    object [ "storyID"    .= sid
+           , "storyTitle" .= stitle
+           , "storyText"  .= stext ]
+
+makeLenses ''Story
+
+-- Just the story metadata, without the text. Used to send out to the index page
 data StoryMeta =
-  StoryMeta { _storyID    :: StoryID
-            , _storyTitle :: Text } deriving (Show, Generic)
+  StoryMeta { _sm_storyID    :: StoryID
+            , _sm_storyTitle :: Text } deriving (Show, Generic)
 
 instance ToJSON StoryMeta where
   toJSON (StoryMeta sid stitle) =
@@ -34,16 +46,12 @@ instance ToJSON StoryMeta where
 
 makeLenses ''StoryMeta
 
-data Story =
-  Story { _meta       :: StoryMeta
-        , _storyText  :: Text      } deriving (Show, Generic)
+-- Has no id yet, as it has not yet been stored in the database. No ToJSON instance necessary
+data StoryUpload =
+  StoryUpload { _su_storyTitle :: Text
+              , _su_storyText  :: Text } deriving (Show, Generic)
 
-instance ToJSON Story where
-  toJSON (Story smeta stext) =
-    object [ "storyMeta" .= toJSON smeta
-           , "storyText" .= stext        ]
-
-makeLenses ''Story
+makeLenses ''StoryUpload
 
 data ErrMsg = ErrMsg { _errMsg :: Text }
   deriving (Show, Generic)
@@ -52,20 +60,3 @@ instance ToJSON ErrMsg where
   toJSON (ErrMsg msg) = object ["error" .= msg]
 
 makeLenses ''ErrMsg
-
-exampleStory1 = story 1 "Attack of the mutant custard" "The end"
-exampleStory2 = story 2 "Jan's Tomatoes" "They grew"
-
-allExampleStories = [exampleStory1, exampleStory2]
-
-story sid stitle stext = 
-  Story { _meta = StoryMeta { _storyID    = sid 
-                            , _storyTitle = stitle }
-        , _storyText = stext }
-
-lookupStoryByID :: StoryID -> [Story] -> Maybe Story
-lookupStoryByID = find . storyIDEquals
-
-storyIDEquals :: StoryID -> Story -> Bool
-storyIDEquals sid stry = (stry ^. (meta . storyID)) == sid
-

@@ -11,7 +11,6 @@ import Control.Monad.IO.Class
 import Web.Scotty
 import Network.HTTP.Types (notFound404)
 
-import Story (_meta, allExampleStories, lookupStoryByID)
 import DB (withDB, selectStoryMetas, selectStory)
 
 ---------------------------

@@ -19,10 +19,10 @@ import Database.PostgreSQL.Simple (connectPostgreSQL, query, query_, Connection,
 import Database.PostgreSQL.Simple.FromRow (FromRow, fromRow, field)
 import Database.PostgreSQL.Simple.Types (Only(..))
 
-import Story (Story(..), StoryMeta(..), story)
+import Story (Story(..), StoryMeta(..))
 
 instance FromRow Story where
-  fromRow = story <$> field <*> field <*> field
+  fromRow = Story <$> field <*> field <*> field
 
 instance FromRow StoryMeta where
   fromRow = StoryMeta <$> field <*> field
