@@ -6,6 +6,7 @@ module DB
 , selectStoryMetas
 , selectStory
 , withDB
+, insertStory
 ) where
 
 import Data.Maybe (listToMaybe)
@@ -15,11 +16,18 @@ import Control.Applicative (liftA3)
 import System.Environment
 import System.Exit (exitFailure)
 
-import Database.PostgreSQL.Simple (connectPostgreSQL, query, query_, Connection, close)
+import Database.PostgreSQL.Simple
+  ( connectPostgreSQL
+  , query
+  , query_
+  , execute
+  , Connection
+  , close
+  , execute)
 import Database.PostgreSQL.Simple.FromRow (FromRow, fromRow, field)
 import Database.PostgreSQL.Simple.Types (Only(..))
 
-import Story (Story(..), StoryMeta(..))
+import Story (Story(..), StoryMeta(..), StoryUpload(..))
 
 instance FromRow Story where
   fromRow = Story <$> field <*> field <*> field
@@ -40,6 +48,10 @@ selectStoryMetas conn = query_ conn "SELECT story_id, title FROM Story"
 
 (<<$>>) = fmap . fmap
 
+insertStory :: StoryUpload -> Connection -> IO ()
+insertStory su conn = do
+  execute conn "INSERT INTO Story (title, content) VALUES (?, ?)" su
+  return ()
 
 testDB :: IO ()
 testDB = do
@@ -68,3 +80,5 @@ withDB dbAction = do
         Nothing -> do
           putStrLn "You need to set the DATABASE_URL env variable!"
           exitFailure
+
+

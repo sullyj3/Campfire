@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Story
 ( Story(..)
 , StoryMeta(..)
+, StoryUpload(..)
 , ErrMsg(..)
 )
 where
@@ -17,6 +19,7 @@ import Lens.Micro.TH (makeLenses)
 import Lens.Micro ((^.))
 
 import Data.Aeson (ToJSON, toJSON, object, (.=))
+import Database.PostgreSQL.Simple (ToRow)
 
 type StoryID = Int
 
@@ -49,7 +52,7 @@ makeLenses ''StoryMeta
 -- Has no id yet, as it has not yet been stored in the database. No ToJSON instance necessary
 data StoryUpload =
   StoryUpload { _su_storyTitle :: Text
-              , _su_storyText  :: Text } deriving (Show, Generic)
+              , _su_storyText  :: Text } deriving (Show, Generic, ToRow)
 
 makeLenses ''StoryUpload
 
