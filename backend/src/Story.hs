@@ -18,7 +18,7 @@ import Lens.Micro.TH (makeLenses)
 -- import Lens.Micro ((&), (%~), (.~), (^.))
 import Lens.Micro ((^.))
 
-import Data.Aeson (ToJSON, toJSON, object, (.=))
+import Data.Aeson (FromJSON(..), ToJSON, toJSON, object, (.=), withObject, (.:))
 import Database.PostgreSQL.Simple (ToRow)
 
 type StoryID = Int
@@ -53,6 +53,11 @@ makeLenses ''StoryMeta
 data StoryUpload =
   StoryUpload { _su_storyTitle :: Text
               , _su_storyText  :: Text } deriving (Show, Generic, ToRow)
+
+instance FromJSON StoryUpload where
+  parseJSON = withObject "StoryUpload" $ \v -> StoryUpload
+        <$> v .: "storyTitle"
+        <*> v .: "storyText"
 
 makeLenses ''StoryUpload
 

@@ -6,11 +6,13 @@ module Routes
 
 import Control.Monad ((<=<))
 import Control.Monad.IO.Class
+import qualified Data.Text.Lazy as T
 
 import Web.Scotty
 import Network.HTTP.Types (notFound404, status501)
 
 import DB (withDB, selectStoryMetas, selectStory)
+import Story (StoryUpload(..))
 
 ---------------------------
 
@@ -32,5 +34,5 @@ getStoryID = maybe (status notFound404) json <=< (liftIO . withDB . selectStory)
 
 upload :: ActionM ()
 upload = do
-  status status501
-  text "we don't support this yet!"
+  su <- jsonData :: ActionM StoryUpload
+  text $ T.pack $ show su
