@@ -106,7 +106,7 @@ goToUploadPage model = ({ model | page = UploadPage emptyStoryUpload }, Cmd.none
 uploadStory : StoryUpload -> Model -> (Model, Cmd Msg)
 uploadStory su model = 
   ( {model | page = UploadPage <| UploadingStory su}
-  , postStory model.apiURL su )
+  , postStory (model.apiURL ++ "/upload") su )
 
 
 testMd = """

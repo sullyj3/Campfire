@@ -30,6 +30,7 @@ dependencies:
 - text-show
 - wai-cors
 - wai-extra
+- wai
 
 library:
   source-dirs: src
