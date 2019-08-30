@@ -11,7 +11,7 @@ import qualified Data.Text.Lazy as T
 import Web.Scotty
 import Network.HTTP.Types (notFound404, status501)
 
-import DB (withDB, selectStoryMetas, selectStory)
+import DB (withDB, selectStoryMetas, selectStory, insertStory)
 import Story (StoryUpload(..))
 
 ---------------------------
@@ -35,4 +35,5 @@ getStoryID = maybe (status notFound404) json <=< (liftIO . withDB . selectStory)
 upload :: ActionM ()
 upload = do
   su <- jsonData :: ActionM StoryUpload
-  text $ T.pack $ show su
+  liftIO $ withDB $ insertStory su
+  text "inserted!"
