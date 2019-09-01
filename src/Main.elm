@@ -323,7 +323,7 @@ storyEditor su = container "storyEditor"
 
 -- <div>Icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/"         title="Flaticon">www.flaticon.com</a></div>
 iconsBy : Html Msg
-iconsBy = div [] [ text "Icons made by "
+iconsBy = div [id "icon-credit"] [ text "Icon made by "
                  , a [ href "https://www.flaticon.com/authors/freepik"
                      , title "Freepik" ]
                      [ text "Freepik" ] 

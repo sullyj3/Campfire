@@ -51,6 +51,14 @@ h1 {
   height:100%
 }
 
+a#icon-credit:visited {
+  color:red;
+}
+
+#icon-credit {
+  color: #bbb;
+}
+
 #story-text-input {
   width:100%;
   height:100%;
