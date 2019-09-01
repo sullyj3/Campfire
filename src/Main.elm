@@ -230,7 +230,7 @@ bodyView model =
     div [class "container"]
       <| case model.page of
         UploadPage ups -> uploadView ups
-        IndexPage  ips -> indexView  ips
+        IndexPage  ips -> [ indexView  ips ]
         StoryPage  sps -> storyView  sps
 
         --   UploadPage _         -> uploadView
@@ -285,16 +285,16 @@ storyMetaView {storyID, storyTitle} =
   text <| fromInt storyID ++ ": " ++ storyTitle
 
 
-indexView : IndexPageState -> List (Html Msg)
+indexView : IndexPageState -> (Html Msg)
 indexView ips = case ips of
-  LoadingIndex -> [text "loading index"]
-  LoadedIndex storyList -> indexLoadedView storyList
-  IndexError -> [text "Error fetching the index"]
+  LoadingIndex -> text "loading index"
+  LoadedIndex storyList ->  indexLoadedView storyList 
+  IndexError -> text "Error fetching the index"
 
-indexLoadedView : List (StoryMeta a) -> List (Html Msg)
-indexLoadedView entries =
-  [ h1 [] [text "Stories"]
-  , ul [] (map (li [] << singleton << storyMetaLinkView) entries) ]
+indexLoadedView : List (StoryMeta a) -> (Html Msg)
+indexLoadedView entries = container "index-container" 
+  [  h1 [] [text "Stories"]
+  , ul [] (map (li [] << singleton << storyMetaLinkView) entries)  ]
 
 uploadView : UploadPageState -> List (Html Msg)
 uploadView ups = case ups of
