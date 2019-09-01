@@ -52,6 +52,7 @@ type StoryPageState
   | StoryNotFound
 
 type alias Model = { apiURL : String
+                   , logoUrl : String
                    , page : CurrentPage
                    }
 
@@ -121,11 +122,13 @@ testMd = """
 2. List item 2
 """
 
-type alias Flags = { api_url : String }
+type alias Flags = { api_url : String
+                   , logo_url : String}
 
 
 init : Flags -> (Model, Cmd Msg)
 init flags = ( { apiURL = flags.api_url
+               , logoUrl = flags.logo_url
                , page   = IndexPage LoadingIndex
                }
              , getIndex flags.api_url
@@ -215,9 +218,12 @@ handleStoryHttpResult r = case r of
 view : Model -> Document Msg
 view model =
   Document "Campfire"
-    [ navBar
+    [ navBar model.logoUrl
     , bodyView model
+    , footer
     ]
+
+footer = div [id "footer"] [iconsBy]
 
 bodyView : Model -> Html Msg
 bodyView model =
@@ -235,10 +241,14 @@ bodyView model =
         --   StoryNotFound _      -> [ text "couldn't find the story!" ]
            -- CouldntConnect       -> [ text "couldn't reach the backend" ]
 
-navBar : Html Msg
-navBar =
-  nav [class "navbar"]
-    [ button [onClick GoToUploadPage] [text "Upload Story"]
+logo : String -> Html Msg
+logo logoUrl = img [src logoUrl, alt "Bonfire logo", id "logo"] []
+
+navBar : String -> Html Msg
+navBar logoUrl =
+  nav [class "nav-bar"]
+    [ logo logoUrl
+    , button [onClick GoToUploadPage] [text "Upload Story"]
     , button [onClick LoadIndex    ] [text "Stories"]
     ]
 
@@ -288,10 +298,38 @@ indexLoadedView entries =
 
 uploadView : UploadPageState -> List (Html Msg)
 uploadView ups = case ups of
-  (EnteringStory su) -> [ input [ placeholder "Story title", onInput UpdateStoryTitle ] [ text su.storyTitle ] 
-                        , input [ placeholder "Text",        onInput UpdateStoryText ]  [ text su.storyText ] 
-                        , button [onClick <| UploadStory su] [text "Upload"]
-                        ]
+  (EnteringStory su) -> [storyEditor su ]
   (UploadingStory _) -> [ text "Uploading..." ]
   (UploadError _)    -> [ text "Error uploading story" ]
   (UploadSuccess)    -> [ text "Successfully uploaded!" ]
+
+container : String -> List (Html Msg) -> Html Msg
+container cls elts = div [ class cls ] elts
+
+storyEditor : StoryUpload -> Html Msg
+storyEditor su = container "storyEditor"
+  [ container "story-title-input-container"
+              [ input [ placeholder "Story title"
+                      , onInput UpdateStoryTitle
+                      , id "story-title-input" ]
+                      [ text su.storyTitle ] ]
+  , container "story-text-input-container" 
+              [ textarea [ placeholder "Story text here"
+                         , onInput UpdateStoryText
+                         , id "story-text-input"]
+                         [ text su.storyText ] ] 
+  , button [onClick <| UploadStory su] [text "Upload"]
+  ]
+
+-- <div>Icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/"         title="Flaticon">www.flaticon.com</a></div>
+iconsBy : Html Msg
+iconsBy = div [] [ text "Icons made by "
+                 , a [ href "https://www.flaticon.com/authors/freepik"
+                     , title "Freepik" ]
+                     [ text "Freepik" ] 
+                 , text " from "
+                 , a [ href "https://www.flaticon.com/"
+                     , title "Flaticon" ]
+                     [ text "www.flaticon.com" ] 
+                 ]
+
