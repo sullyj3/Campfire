@@ -1,14 +1,11 @@
-To run:
-First, start the backend:
-```
-flask run
-```
+This repo contains both the frontend, in Elm, and the backend, in Haskell.
 
-then, in another terminal:
+To build the backend, in the `backend` directory, do `stack build`.
 
-```
-elm make src/main.elm
-elm reactor
-```
+To build the frontend, do `elm-app build`.
 
-Finally, navigate to http://localhost:8000/index.html
+To run the backend, do `stack exec backend-exe`.
+When running the backend, supply the URL of the postgres database with the Env variable DATABASE_URL.
+
+To run the frontend, use `elm-app start`
+When running the frontend, supply the backend API url with the Env variable ELM_APP_API_URL.
