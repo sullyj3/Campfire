@@ -41,7 +41,8 @@ isJson r = isJust $ find (==(hContentType,"application/json")) (requestHeaders r
 myCORSPolicy :: Request -> Maybe CorsResourcePolicy
 myCORSPolicy r = Just $
     CorsResourcePolicy
-          { corsOrigins = Just (["http://localhost:3000", "https://eager-hamilton-35aa59.netlify.com"], False)
+          { corsOrigins = Nothing
+          --corsOrigins = Just (["http://localhost:3000", "https://eager-hamilton-35aa59.netlify.com"], False)
           , corsMethods = ["GET", "POST"]
           , corsRequestHeaders = simpleHeaders -- adds "Content-Type" to defaults
           , corsExposedHeaders = Nothing
